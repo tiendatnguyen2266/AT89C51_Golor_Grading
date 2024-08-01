@@ -1,0 +1,211 @@
+C51 COMPILER V9.60.0.0   89S51_SERVO__FINAL                                                05/09/2023 23:19:30 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE 89S51_SERVO__FINAL
+OBJECT MODULE PLACED IN .\Objects\89s51_servo -Final.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE 89s51_servo -Final.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.
+                    -\Listings\89s51_servo -Final.lst) TABS(2) OBJECT(.\Objects\89s51_servo -Final.obj)
+
+line level    source
+
+   1          #include<REGX51.h>
+   2          
+   3          unsigned char code Code7Seg[] = {0xC0, 0xF9, 0xA4, 0xB0, 0x99, 0x92, 0x82, 0xF8, 0x80, 0x90};
+   4          unsigned char low, high;
+   5          unsigned int F_do, F_xanhlam, F_xanhluc;
+   6          unsigned int number, count=0, t = 0;
+   7          
+   8          // Thiet lap chan dieu khien dong co DC
+   9          sbit  EnA = P2^3; 
+  10          sbit  In1 = P2^4; 
+  11          sbit  In2 = P2^5; 
+  12          
+  13          // Thiet lap chan dieu khien servo
+  14          sbit In3 = P2^6; 
+  15          sbit In4 = P2^7; 
+  16          sbit control_pin = P1^7;
+  17          
+  18          // Thiet lap chan dieu khien TCS3200
+  19          sbit S0 = P1^2;  
+  20          sbit S1 = P1^3;
+  21          sbit S2 = P1^0;
+  22          sbit S3 = P1^1;
+  23          
+  24          //////////////////////////////////////////////////////////////////////////////////////////////////////////
+             -//////////////
+  25          
+  26          //Thiet lap ham delay hien thi
+  27          void Delay(int time) {
+  28   1        while(time--);
+  29   1      }
+  30          
+  31          //////////////////////////////////////////////////////////////////////////////////////////////////////////
+             -//////////////
+  32          
+  33          //Thiet lap ham dieu khien servo
+  34          void Delay_servo(unsigned int ds) {
+  35   1        TMOD = 0x15;
+  36   1        TH1=0xFF - (ds>>8) & 0xFF;
+  37   1        TL1=0xFF- ds & 0xFF;
+  38   1        ET1=1;
+  39   1        EA=0;
+  40   1        TR1=1;
+  41   1        while(TF1==0);
+  42   1        TR1=0;
+  43   1        TF1=0;
+  44   1      }
+  45          
+  46          //////////////////////////////////////////////////////////////////////////////////////////////////////////
+             -//////////////
+  47          
+  48          //Thiet lap ham hien thi bang Led 7 doan
+  49          void Display(unsigned int n) {
+  50   1        unsigned char tram, chuc, dvi;
+  51   1        tram = n/100;
+C51 COMPILER V9.60.0.0   89S51_SERVO__FINAL                                                05/09/2023 23:19:30 PAGE 2   
+
+  52   1        n %= 100;
+  53   1        chuc = n/10;  
+  54   1        dvi = n%10;
+  55   1      
+  56   1        P0 = Code7Seg[tram];
+  57   1        P2_2 = 0;
+  58   1        Delay(1);
+  59   1        P2_2 = 1;
+  60   1      
+  61   1        P0 = Code7Seg[chuc];
+  62   1        P2_1 = 0;
+  63   1        Delay(1);
+  64   1        P2_1 = 1;
+  65   1      
+  66   1        P0 = Code7Seg[dvi];
+  67   1        P2_0 = 0;
+  68   1        Delay(1);
+  69   1        P2_0 = 1;
+  70   1      }
+  71          
+  72          //////////////////////////////////////////////////////////////////////////////////////////////////////////
+             -//////////////
+  73          
+  74          void main() {
+  75   1        //Thiet lap các chan dieu khien dong co DC
+  76   1        EnA = 1; 
+  77   1        In1 = 0; 
+  78   1        In2 = 1;  
+  79   1        // Thiet lap chan dieu khien servo
+  80   1        control_pin=0;
+  81   1        In3 = 0; 
+  82   1        In4 = 1; 
+  83   1        //Thiet lap tan so TCS3200 20%
+  84   1        S0 = 1;  
+  85   1        S1 = 0;
+  86   1      
+  87   1        TMOD = 0x15;
+  88   1        ET1 = 1;
+  89   1        TR1 = 1;
+  90   1        EA = 1;
+  91   1        TR0 = 1;  
+  92   1        
+  93   1        while(1) {
+  94   2          switch(count) {
+  95   3            case 0: // Bat photodiode Red
+  96   3              S2 = 0;
+  97   3              S3 = 0;
+  98   3            break;
+  99   3            case 1: // Bat photodiode Blue
+ 100   3              S2 = 0;
+ 101   3              S3 = 1;
+ 102   3            break;
+ 103   3            case 2: // Bat photodiode Green
+ 104   3              S2 = 1;
+ 105   3              S3 = 1;
+ 106   3            break;
+ 107   3          }
+ 108   2          
+ 109   2          do {
+ 110   3            high = TH0;
+ 111   3            low = TL0;
+ 112   3          } while(high!=TH0);
+C51 COMPILER V9.60.0.0   89S51_SERVO__FINAL                                                05/09/2023 23:19:30 PAGE 3   
+
+ 113   2      
+ 114   2          number = high;
+ 115   2          number <<= 8;
+ 116   2          number = low;
+ 117   2          Display(number);
+ 118   2        }
+ 119   1      }
+ 120          
+ 121          //////////////////////////////////////////////////////////////////////////////////////////////////////////
+             -//////////////
+ 122          
+ 123          void ngat() interrupt 3{
+ 124   1        long a = 50000;
+ 125   1        t++;
+ 126   1        TH1 = 0xfc;
+ 127   1        TL1 = 0x18;
+ 128   1        TR1 = 1;
+ 129   1        
+ 130   1        if(t>=2000){
+ 131   2          if (S2 == 0 && S3 == 0) {    
+ 132   3            F_do=number;
+ 133   3          }
+ 134   2          if (S2 == 0 && S3 == 1) {    
+ 135   3            F_xanhlam=number;
+ 136   3          }
+ 137   2          if (S2 == 1 && S3 == 1) {    
+ 138   3            F_xanhluc=number;
+ 139   3          }
+ 140   2          t = 0;
+ 141   2          if(count<2){
+ 142   3            count++;
+ 143   3          }
+ 144   2          else {
+ 145   3            if (F_do > F_xanhlam && F_do > F_xanhluc) {
+ 146   4            control_pin=1;
+ 147   4            Delay_servo(0);
+ 148   4            control_pin=0;
+ 149   4            }
+ 150   3            if (F_xanhlam > F_do && F_xanhlam > F_xanhluc) {
+ 151   4            control_pin=1;
+ 152   4            Delay_servo(1478);
+ 153   4            control_pin=0;
+ 154   4            }
+ 155   3            if (F_xanhluc > F_do && F_xanhluc > F_xanhlam) {
+ 156   4            control_pin=1;
+ 157   4            Delay_servo(2700);
+ 158   4            control_pin=0;
+ 159   4            }
+ 160   3            count=0;
+ 161   3            TH1 = 0xfc;
+ 162   3            TL1 = 0x18;
+ 163   3            ET1 = 1;
+ 164   3            TR1 = 1;
+ 165   3            EA = 1;
+ 166   3            //Tra ve trang thai clear
+ 167   3            S2 = 1;
+ 168   3            S3 = 0;
+ 169   3            Delay(1);
+ 170   3          }   
+ 171   2      
+ 172   2          while(a--){};
+ 173   2          TH0 = 0;
+C51 COMPILER V9.60.0.0   89S51_SERVO__FINAL                                                05/09/2023 23:19:30 PAGE 4   
+
+ 174   2          TL0 = 0;
+ 175   2        }
+ 176   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    516    ----
+   CONSTANT SIZE    =     10    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     14       6
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

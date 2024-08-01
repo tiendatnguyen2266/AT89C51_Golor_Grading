@@ -1,0 +1,3 @@
+".\Objects\89s51_servo -Final.obj" 
+TO ".\Objects\Final-8051" 
+PRINT(".\Listings\Final-8051.m51")
